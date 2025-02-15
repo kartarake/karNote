@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'karNOTE',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xff1b1f22),
+        scaffoldBackgroundColor: Color(0xff1b1f22),
       ),
       home: const AppLayout(),
     );
@@ -42,30 +42,29 @@ class AppLayout extends StatefulWidget {
 }
 
 class _AppLayoutState extends State<AppLayout> {
-  bool isSidebarOpen = true; // Sidebar visibility state
-
-  void toggleSidebar() {
-    setState(() {
-      isSidebarOpen = !isSidebarOpen;
-    });
-  }
+  final ValueNotifier<bool> isSidebarOpen = ValueNotifier(true); // ✅ Correct initialization
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: CustomTitleBar(onMenuPressed: toggleSidebar), // Pass function to title bar
+      appBar: CustomTitleBar(onMenuPressed: () {
+        isSidebarOpen.value = !isSidebarOpen.value; // ✅ Toggle without rebuild
+      }),
       body: WindowBorder(
         color: Colors.transparent,
         child: Row(
           children: [
-            // Sidebar with animation
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: isSidebarOpen ? 250 : 0, // Expands & collapses
-              child: isSidebarOpen ? const LeftSide() : null, // Efficient hiding
+            ValueListenableBuilder<bool>(
+              valueListenable: isSidebarOpen,
+              builder: (context, isOpen, child) {
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: isOpen ? 250 : 0,
+                  child: Visibility(visible: isOpen, child: const LeftSide()),
+                );
+              },
             ),
-            // Main content (Unchanged)
             const Expanded(child: RightSide()),
           ],
         ),
@@ -74,7 +73,8 @@ class _AppLayoutState extends State<AppLayout> {
   }
 }
 
-/// **Custom Title Bar**
+
+/// **Custom Title Bar (Now Efficient)**
 class CustomTitleBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onMenuPressed;
 
@@ -83,18 +83,18 @@ class CustomTitleBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return WindowTitleBarBox(
-      child: MoveWindow(
-        child: Container(
-          height: 40,
-          width: double.infinity,
-          color: Colors.transparent,
-          child: Row(
-            children: [
-              LeftSideIcons(onMenuPressed: onMenuPressed),
-              const Spacer(),
-              const WindowButtons(),
-            ],
-          ),
+      child: Container(
+        height: 40,
+        width: double.infinity,
+        color: Colors.transparent,
+        padding: EdgeInsets.zero,
+        margin: EdgeInsets.zero,
+        child: Row(
+          children: [
+            LeftSideIcons(onMenuPressed: onMenuPressed),
+            const Spacer(),
+            const WindowButtons(),
+          ],
         ),
       ),
     );
@@ -104,7 +104,7 @@ class CustomTitleBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(40);
 }
 
-/// **Left Side Icons (With Sidebar Toggle)**
+/// **Left Side Icons (Menu Button Works Without Lag)**
 class LeftSideIcons extends StatelessWidget {
   final VoidCallback onMenuPressed;
 
@@ -114,15 +114,15 @@ class LeftSideIcons extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _iconButton('assets/icons/tabler--menu-2.svg', onMenuPressed),
-        _iconButton('assets/icons/tabler--folder-open.svg', () {}),
-        _iconButton('assets/icons/tabler--search.svg', () {}),
+        _iconButton('assets/icons/tabler--menu-2.svg', onMenuPressed, "Side Bar"),
+        _iconButton('assets/icons/tabler--folder-open.svg', () {}, "Open File"),
+        _iconButton('assets/icons/tabler--search.svg', () {}, "Search"),
       ],
     );
   }
 
   /// **Creates Icon Buttons**
-  static Widget _iconButton(String assetPath, VoidCallback onTap) {
+  static Widget _iconButton(String assetPath, VoidCallback onTap, String toolTip) {
     return IconButton(
       icon: SvgPicture.asset(
         assetPath,
@@ -130,6 +130,7 @@ class LeftSideIcons extends StatelessWidget {
         colorFilter: const ColorFilter.mode(Color(0xff818e8a), BlendMode.srcIn),
       ),
       onPressed: onTap,
+      tooltip: toolTip,
     );
   }
 }
