@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:provider/provider.dart';
 
 import 'package:karnote/pages/home.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => FileListHolder(),
+      child: MyApp()
+    )
+  );
+
   doWhenWindowReady(() {
     final win = appWindow;
     const initialSize = Size(1280, 720);
@@ -26,7 +36,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'karNOTE',
       theme: ThemeData(
-        scaffoldBackgroundColor: Color(0xff1b1f22),
+        scaffoldBackgroundColor: const Color(0xff1b1f22),
       ),
       home: const AppLayout(),
     );
@@ -42,14 +52,15 @@ class AppLayout extends StatefulWidget {
 }
 
 class _AppLayoutState extends State<AppLayout> {
-  final ValueNotifier<bool> isSidebarOpen = ValueNotifier(true); // ✅ Correct initialization
+  final ValueNotifier<bool> isSidebarOpen = ValueNotifier(true);
+  final FileListHolder fileHolder = FileListHolder();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: CustomTitleBar(onMenuPressed: () {
-        isSidebarOpen.value = !isSidebarOpen.value; // ✅ Toggle without rebuild
+        isSidebarOpen.value = !isSidebarOpen.value;
       }),
       body: WindowBorder(
         color: Colors.transparent,
@@ -74,7 +85,6 @@ class _AppLayoutState extends State<AppLayout> {
 }
 
 
-/// **Custom Title Bar (Now Efficient)**
 class CustomTitleBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onMenuPressed;
 
@@ -92,7 +102,7 @@ class CustomTitleBar extends StatelessWidget implements PreferredSizeWidget {
         child: Row(
           children: [
             LeftSideIcons(onMenuPressed: onMenuPressed),
-            const Spacer(),
+            Expanded(child: MoveWindow()),
             const WindowButtons(),
           ],
         ),
@@ -104,7 +114,7 @@ class CustomTitleBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(40);
 }
 
-/// **Left Side Icons (Menu Button Works Without Lag)**
+
 class LeftSideIcons extends StatelessWidget {
   final VoidCallback onMenuPressed;
 
@@ -112,14 +122,26 @@ class LeftSideIcons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final FileListHolder fileHolder = Provider.of<FileListHolder>(context);
+
+    void onFolderOpenPressed () async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result != null) {
+        File file = File(result.files.single.path!);
+        fileHolder.addFile(file);
+        print(fileHolder.files);
+      }
+    }
+
     return Row(
       children: [
         _iconButton('assets/icons/tabler--menu-2.svg', onMenuPressed, "Side Bar"),
-        _iconButton('assets/icons/tabler--folder-open.svg', () {}, "Open File"),
+        _iconButton('assets/icons/tabler--folder-open.svg', onFolderOpenPressed, "Open File"),
         _iconButton('assets/icons/tabler--search.svg', () {}, "Search"),
       ],
     );
   }
+
 
   /// **Creates Icon Buttons**
   static Widget _iconButton(String assetPath, VoidCallback onTap, String toolTip) {
@@ -166,3 +188,27 @@ final closeButtonColors = WindowButtonColors(
   iconNormal: const Color(0xFF767e7d),
   iconMouseOver: Colors.white,
 );
+
+
+class FileListHolder extends ChangeNotifier {
+  final List<File> _files = [];
+  ValueNotifier<File?> currentFile = ValueNotifier<File?>(null);
+
+  List<File> get files => _files;
+  File get current => currentFile.value!;
+
+  void setCurrentFile(File file) {
+    currentFile.value = file;
+    notifyListeners();
+  }
+
+  void addFile(File file) {
+    _files.add(file);
+    notifyListeners();
+  }
+
+  void removeFile(File file) {
+    _files.remove(file);
+    notifyListeners();
+  }
+}
