@@ -57,6 +57,7 @@ class _AppLayoutState extends State<AppLayout> {
 
   @override
   Widget build(BuildContext context) {
+    FileListHolder fileList = Provider.of<FileListHolder>(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: CustomTitleBar(onMenuPressed: () {
@@ -76,7 +77,9 @@ class _AppLayoutState extends State<AppLayout> {
                 );
               },
             ),
-            const Expanded(child: RightSide()),
+            Expanded(
+              child: fileList._files.isEmpty? WelcomeScreen() : RightSide()
+            ),
           ],
         ),
       ),
@@ -129,7 +132,7 @@ class LeftSideIcons extends StatelessWidget {
       if (result != null) {
         File file = File(result.files.single.path!);
         fileHolder.addFile(file);
-        print(fileHolder.files);
+        fileHolder.setCurrentFile(file);
       }
     }
 
@@ -197,6 +200,11 @@ class FileListHolder extends ChangeNotifier {
   List<File> get files => _files;
   File get current => currentFile.value!;
 
+  /// This map caches the edited content for each file,
+  /// using the file path as the key.
+  final Map<String, String> unsavedContents = {};
+  Map<String, String> get unsaved => unsavedContents;
+
   void setCurrentFile(File file) {
     currentFile.value = file;
     notifyListeners();
@@ -209,6 +217,22 @@ class FileListHolder extends ChangeNotifier {
 
   void removeFile(File file) {
     _files.remove(file);
+    notifyListeners();
+  }
+
+  void renameCurrentFile(String newName) {
+    final current = currentFile.value!;
+    final newPath = current.path.replaceFirst(current.uri.pathSegments.last, newName);
+    final newFile = File(newPath);
+
+    // Update the _files list with the new file path
+    final index = _files.indexOf(current);
+    if (index != -1) {
+      _files[index] = newFile;
+    }
+
+    current.rename(newPath);
+    currentFile.value = newFile;
     notifyListeners();
   }
 }

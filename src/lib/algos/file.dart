@@ -181,3 +181,20 @@ Future<void> unzipFile(String path) async {
     }
   }
 }
+
+
+/// Deletes the file specified by [file].
+/// 
+/// If the file exists, it will be deleted asynchronously.
+/// Throws an exception if the file does not exist or deletion fails.
+Future<void> deleteFile(File file) async {
+  if (await file.exists()) {
+    try {
+      await file.delete();
+    } catch (e) {
+      throw Exception("Error deleting file ${file.path}: $e");
+    }
+  } else {
+    throw Exception("File does not exist: ${file.path}");
+  }
+}
