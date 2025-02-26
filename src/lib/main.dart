@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'karNOTE',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xff1b1f22),
+        scaffoldBackgroundColor: const Color(0xff1a1a1a),
       ),
       home: const AppLayout(),
     );
@@ -152,7 +152,7 @@ class LeftSideIcons extends StatelessWidget {
       icon: SvgPicture.asset(
         assetPath,
         height: 24,
-        colorFilter: const ColorFilter.mode(Color(0xff818e8a), BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(Color(0xffc1c2e5), BlendMode.srcIn),
       ),
       onPressed: onTap,
       tooltip: toolTip,
@@ -178,8 +178,8 @@ class WindowButtons extends StatelessWidget {
 
 /// **Button Colors**
 final buttonColors = WindowButtonColors(
-  iconNormal: const Color(0xFF767e7d),
-  mouseOver: const Color(0xFF767e7d),
+  iconNormal: const Color(0xFFc1c2e5),
+  mouseOver: const Color(0xFFc1c2e5),
   mouseDown: const Color(0xFFffffff),
   iconMouseOver: const Color(0xFF1b1f22),
   iconMouseDown: const Color(0xFFFFFFFF),
@@ -188,7 +188,7 @@ final buttonColors = WindowButtonColors(
 final closeButtonColors = WindowButtonColors(
   mouseOver: const Color(0xFFD32F2F),
   mouseDown: const Color(0xFFB71C1C),
-  iconNormal: const Color(0xFF767e7d),
+  iconNormal: const Color(0xFFc1c2e5),
   iconMouseOver: Colors.white,
 );
 
@@ -199,11 +199,6 @@ class FileListHolder extends ChangeNotifier {
 
   List<File> get files => _files;
   File get current => currentFile.value!;
-
-  /// This map caches the edited content for each file,
-  /// using the file path as the key.
-  final Map<String, String> unsavedContents = {};
-  Map<String, String> get unsaved => unsavedContents;
 
   void setCurrentFile(File file) {
     currentFile.value = file;
@@ -220,7 +215,7 @@ class FileListHolder extends ChangeNotifier {
     notifyListeners();
   }
 
-  void renameCurrentFile(String newName) {
+  void renameCurrentFile(String newName) async {
     final current = currentFile.value!;
     final newPath = current.path.replaceFirst(current.uri.pathSegments.last, newName);
     final newFile = File(newPath);
@@ -231,7 +226,7 @@ class FileListHolder extends ChangeNotifier {
       _files[index] = newFile;
     }
 
-    current.rename(newPath);
+    await current.rename(newPath);
     currentFile.value = newFile;
     notifyListeners();
   }

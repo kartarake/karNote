@@ -1,10 +1,13 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:archive/archive.dart';
+
+import 'package:flutter/foundation.dart';
+
+
 
 /// Reads the file at [path] and returns its content as a [String].
 /// 
@@ -19,6 +22,8 @@ Future<String> readFile(String path) async {
       .join();
 }
 
+
+
 /// Saves the given [data] as a string to the file at [path].
 /// 
 /// This writes the file in an asynchronous and efficient way.
@@ -27,11 +32,41 @@ Future<void> saveFile(String path, String data) async {
   await file.writeAsString(data, flush: true);
 }
 
+
+
+Future<void> safeSaveFile(String filePath, String content) async {
+  const int maxRetries = 3;
+  const Duration retryDelay = Duration(milliseconds: 200);
+
+  for (int attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      final file = File(filePath);
+      // Write file asynchronously with flush so that data is committed immediately.
+      await file.writeAsString(content, mode: FileMode.write, flush: true);
+      debugPrint('File saved successfully.');
+      return; // Success
+    } catch (e) {
+      debugPrint('Attempt ${attempt + 1} failed to save file: $e');
+      if (attempt < maxRetries - 1) {
+        // Wait briefly before retrying.
+        await Future.delayed(retryDelay);
+      } else {
+        // If the last attempt fails, rethrow the error.
+        rethrow;
+      }
+    }
+  }
+}
+
+
+
 /// Reads a JSON file from [path] and returns its contents as a [Map<String, dynamic>].
 Future<Map<String, dynamic>> readJSON(String path) async {
   final contents = await readFile(path);
   return jsonDecode(contents) as Map<String, dynamic>;
 }
+
+
 
 /// Saves the JSON [jsonObject] to the file at [path].
 Future<void> saveJSON(String path, Map<String, dynamic> jsonObject) async {
@@ -39,12 +74,16 @@ Future<void> saveJSON(String path, Map<String, dynamic> jsonObject) async {
   await saveFile(path, jsonString);
 }
 
+
+
 /// Hashes the provided [input] string using SHA-256 and returns the hexadecimal digest.
 String hashString(String input) {
   final bytes = utf8.encode(input);
   final digest = sha256.convert(bytes);
   return digest.toString();
 }
+
+
 
 /// Encrypts the file at [path] using AES encryption (CBC mode with PKCS7 padding)
 /// with the provided [password]. The key is derived from the password using SHA-256.
@@ -88,6 +127,8 @@ Future<void> encryptFile(String path, String password) async {
   await saveJSON(path, jsonObject);
 }
 
+
+
 /// Decrypts the AES‑encrypted file at [path] using the provided [password].
 ///
 /// The file must be in the JSON format produced by [encryptFile]. On successful
@@ -129,6 +170,8 @@ Future<void> decryptFile(String path, String password) async {
   await saveFile(path, decrypted);
 }
 
+
+
 /// Compresses (zips) the file at [path] and saves it as a .zip file in the same directory.
 /// 
 /// The resulting zip file will have the same name as the original file with an added '.zip' extension.
@@ -149,6 +192,8 @@ Future<void> zipFile(String path) async {
   final zipFileOut = File(zipPath);
   await zipFileOut.writeAsBytes(zipData, flush: true);
 }
+
+
 
 /// Extracts (unzips) the .zip file at [path] into its containing directory.
 /// 
@@ -181,6 +226,7 @@ Future<void> unzipFile(String path) async {
     }
   }
 }
+
 
 
 /// Deletes the file specified by [file].

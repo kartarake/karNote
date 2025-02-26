@@ -1,27 +1,29 @@
+// Main Dependencies
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:code_text_field/code_text_field.dart';
-import 'package:highlight/languages/dart.dart';
-import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'dart:io';
-import 'package:karnote/main.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
-import 'package:karnote/algos/file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 
+// Code Editor Dependencies
+import 'package:code_text_field/code_text_field.dart';
+import 'package:highlight/highlight.dart';
+import 'package:highlight/languages/all.dart';
+import 'package:flutter_highlight/themes/atom-one-dark.dart';
+
+// Local Imports
+import 'package:karnote/main.dart';
+import 'package:karnote/helpers/file.dart';
+
+// The Left side sidebar of the app.
 class LeftSide extends StatelessWidget {
   const LeftSide({super.key});
 
   @override
   Widget build(BuildContext context) {
     FileListHolder fileHolder = Provider.of<FileListHolder>(context);
-
-    // Add a listener to rebuild the widget when the current file is renamed
-    fileHolder.currentFile.addListener(() {
-      // Trigger a rebuild
-      (context as Element).markNeedsBuild();
-    });
 
     Widget buildFileListHeader() {
       return Row(
@@ -30,18 +32,18 @@ class LeftSide extends StatelessWidget {
           SvgPicture.asset(
             'assets/icons/tabler--file.svg', // Ensure this path is correct
             height: 16,
-            colorFilter: const ColorFilter.mode(Color(0xff767e7d), BlendMode.srcIn),
+            colorFilter: const ColorFilter.mode(Color(0xffc1c2e5), BlendMode.srcIn),
           ),
-
           SizedBox(width: 8),
-
-          const Text(
-            "Files",
-            style: TextStyle(
-              fontFamily: "FiraCode",
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xff767e7d),
+          const Expanded( // Wrap with Expanded
+            child: Text(
+              "Files",
+              style: TextStyle(
+                fontFamily: "FiraCode",
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xffc1c2e5),
+              ),
             ),
           ),
         ],
@@ -59,8 +61,8 @@ class LeftSide extends StatelessWidget {
               itemBuilder: (context, index) {
                 File file = fileHolder.files[index];
                 bool isSelected = file.path == currentFile?.path;
-
                 return InkWell(
+                  borderRadius: BorderRadius.circular(13),
                   onTap: () {
                     fileHolder.setCurrentFile(file);
                   },
@@ -68,7 +70,7 @@ class LeftSide extends StatelessWidget {
                     height: 40,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
-                      color: Color(isSelected ? 0xff505659 : 0xff434a4e),
+                      color: isSelected? Color.fromRGBO(26, 26, 26, 0.2) : Color.fromRGBO(26, 26, 26, 0.4),
                       borderRadius: BorderRadius.circular(13),
                     ),
                     child: buildFileListRow(file, fileHolder),
@@ -82,11 +84,16 @@ class LeftSide extends StatelessWidget {
       );
     }
 
-
     return SizedBox(
       width: 300,
       child: Container(
-        color: const Color(0xff353e43),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xff4d4d4d), Color(0x004e3fbd)]
+          )
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 82),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,13 +109,16 @@ class LeftSide extends StatelessWidget {
   Row buildFileListRow(File file, FileListHolder fileHolder) {
     return Row(
       children: [
-        Text(
-          file.path.split(Platform.pathSeparator).last,
-          style: TextStyle(
-            fontFamily: "FiraCode",
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: Color(0xff818e8a),
+        Expanded( // Wrap with Expanded
+          child: Text(
+            file.path.split(Platform.pathSeparator).last,
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xffc1c2e5),
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         Spacer(),
@@ -123,7 +133,7 @@ class LeftSide extends StatelessWidget {
             'assets\\icons\\tabler--x.svg',
             height: 16,
             colorFilter: const ColorFilter.mode(
-              Color(0xff818e8a), BlendMode.srcIn),
+              Color(0xffc1c2e5), BlendMode.srcIn),
           ),
         )
       ],
@@ -131,7 +141,7 @@ class LeftSide extends StatelessWidget {
   }
 }
 
-
+// The welcome screen on start of the app.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -146,8 +156,15 @@ class WelcomeScreen extends StatelessWidget {
         saveFile(newFile.path, "");
         fileListHolder.addFile(newFile);
         fileListHolder.setCurrentFile(newFile);
-        print(fileListHolder.files);
-        print(fileListHolder.currentFile.value);
+      }
+    }
+
+    void onOpenFolderPressed () async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result != null) {
+        File file = File(result.files.single.path!);
+        fileListHolder.addFile(file);
+        fileListHolder.setCurrentFile(file);
       }
     }
 
@@ -187,7 +204,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () {print("Open File");},
+              onPressed: () {onOpenFolderPressed();},
               child: const Text(
                 "> Open File",
                 style: TextStyle(
@@ -206,6 +223,7 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
+// The code editor screen.
 class RightSide extends StatefulWidget {
   const RightSide({super.key});
   @override
@@ -216,11 +234,14 @@ class _RightSideState extends State<RightSide> {
   CodeController? _codeController;
   late ScrollController _scrollController;
   FileListHolder? _fileHolder;
+  Timer? _autoSaveTimer;
+  static const Duration autoSaveDelay = Duration(seconds: 2);
 
   @override
   void initState() {
     super.initState();
-    _codeController = CodeController(language: dart);
+    // Initialize CodeController with default language (Dart)
+    _codeController = CodeController(language: allLanguages['.txt']);
     _scrollController = ScrollController();
 
     // Listen for changes in the code editor and update our cache.
@@ -237,7 +258,7 @@ class _RightSideState extends State<RightSide> {
       _fileHolder?.currentFile.removeListener(_onFileChanged);
       _fileHolder = newHolder;
       _fileHolder!.currentFile.addListener(_onFileChanged);
-      // Update the code editor with the current file's content.
+      // Update the code editor with the current file's content and language.
       _updateEditorWithCurrentFile();
     }
   }
@@ -245,38 +266,119 @@ class _RightSideState extends State<RightSide> {
   /// Called when the code editor's text changes.
   /// Saves the current text in our cache, keyed by the file path.
   void _onCodeChanged() {
-    Map<String, String> unsavedContents = _fileHolder!.unsavedContents;
-    final currentFile = _fileHolder?.currentFile.value;
-    if (currentFile != null) {
-      unsavedContents[currentFile.path] = _codeController!.text;
-    }
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(autoSaveDelay, () {
+      final filePath = _fileHolder!.currentFile.value?.path ?? "";
+      if (filePath.isNotEmpty) {
+        safeSaveFile(filePath, _codeController!.text);
+      }
+    });
   }
 
   /// Called when the current file changes.
-  /// Loads the content from the cache (if available) or from disk.
+  /// Loads the content from the cache (if available) or from disk, and updates syntax highlighting.
   void _onFileChanged() {
     _updateEditorWithCurrentFile();
   }
 
-  /// Updates the code editor's text based on the current file.
-  void _updateEditorWithCurrentFile() {
-    Map<String, String> unsavedContents = _fileHolder!.unsavedContents;
+  /// Updates the code editor's text and language based on the current file.
+  void _updateEditorWithCurrentFile() async {
     final currentFile = _fileHolder?.currentFile.value;
-    if (currentFile != null) {
-      // Use cached content if available.
-      if (unsavedContents.containsKey(currentFile.path)) {
-        _codeController!.text = unsavedContents[currentFile.path]!;
-      } else {
-        try {
-          _codeController!.text = currentFile.readAsStringSync();
-        } catch (e) {
-          _codeController!.text = "";
-        }
-      }
+
+    if (currentFile == null) {
+      _codeController!.text = '';
+      _codeController!.language = allLanguages['plaintext'];
+      return;
     } else {
-      _codeController!.text = "";
+      _codeController!.text = await readFile(currentFile.path);
+      _codeController!.language = _getLanguageForFile(currentFile.path);
     }
   }
+
+  /// Determines the syntax highlighting language for a given file path.
+  /// Returns a Mode for known extensions, or null for plain text.
+  Mode? _getLanguageForFile(String filePath) {
+    final ext = path.extension(filePath).toLowerCase();
+    // Remove the leading dot:
+    final fileExt = ext.isNotEmpty ? ext.substring(1) : '';
+
+    // Mapping table for common file extensions to language keys.
+  final extensionMapping = <String, String>{
+     // Programming languages:
+      'dart': 'dart',
+      'py': 'python',
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'c': 'c',
+      'h': 'cpp',
+      'cpp': 'cpp',
+      'cc': 'cpp',
+      'cxx': 'cpp',
+      'cs': 'csharp',
+      'java': 'java',
+      'rb': 'ruby',
+      'php': 'php',
+      'go': 'go',
+      'rs': 'rust',
+      'swift': 'swift',
+      'kt': 'kotlin',
+      'kts': 'kotlin',
+      'scala': 'scala',
+      'hs': 'haskell',
+      'sql': 'sql',
+      
+      // Web & Markup:
+      'html': 'xml',
+      'htm': 'xml',
+      'css': 'css',
+      'xml': 'xml',
+
+      // Data & Configuration:
+      'json': 'json',
+      'yml': 'yaml',
+      'yaml': 'yaml',
+      'tsv': 'csv',
+      'ini': 'ini',
+      'conf': 'ini',
+      'cfg': 'ini',
+
+      // Markup & Documentation:
+      'md': 'markdown',
+      'mdx': 'markdown',
+      'rmd': 'markdown',
+      'txt': 'plaintext',
+      'tex': 'latex',
+      'latex': 'latex',
+
+      // Shell & Scripting:
+      'sh': 'bash',
+      'bash': 'bash',
+      'zsh': 'bash',
+      'bat': 'dos',
+      'ps1': 'powershell',
+      'pl': 'perl',
+      'lua': 'lua',
+
+      // Others:
+      'r': 'r',
+      'vb': 'vbnet',
+      'vbs': 'vbnet',
+      'cshtml': 'razor',
+      'asp': 'asp',
+      'aspx': 'asp',
+      'jsp': 'jsp',
+      'coffee': 'coffeescript',
+      'json5': 'json',
+      'lock': 'json',
+    };
+
+    final languageKey = extensionMapping[fileExt] ?? fileExt;
+
+    return allLanguages[languageKey] ?? allLanguages['plaintext'];
+  }
+
 
   @override
   void dispose() {
@@ -297,7 +399,7 @@ class _RightSideState extends State<RightSide> {
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 70),
             child: Container(
               decoration: const BoxDecoration(
-                color: Color(0xff1b1f22),
+                color: Colors.transparent,
               ),
               child: Column(
                 children: [
@@ -314,13 +416,11 @@ class _RightSideState extends State<RightSide> {
   }
 
   /// The code editor widget.
-  /// Notice that we removed the assignment to _codeController!.text here,
-  /// since the text is now updated in the file change listener.
   Widget buildCodeEditor(FileListHolder fileListHolder) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: const Color(0xff15181a), // Editor background
+        color: const Color(0xff171717), // Editor background
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 20),
@@ -360,22 +460,34 @@ class _RightSideState extends State<RightSide> {
   Widget buildFileBar(FileListHolder fileListHolder) {
     return Row(
       children: [
-        Text(
-          fileListHolder.currentFile.value?.path.split(Platform.pathSeparator).last ??
-              "Untitled",
-          style: const TextStyle(
-            fontFamily: "FiraCode",
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: Color(0xff818e8a),
+        Expanded(
+          child: Row(
+            children: [
+              Flexible(
+                child: buildFileName(fileListHolder),
+              ),
+              const SizedBox(width: 4),
+              buildRenameButton(),
+            ],
           ),
         ),
-        buildRenameButton(),
-        const Spacer(),
         buildSaveButton(fileListHolder),
-        //buildVersionHistoryButton(),
+        const SizedBox(width: 8),
         buildDeleteButton(fileListHolder),
       ],
+    );
+  }
+
+  Text buildFileName(FileListHolder fileListHolder) {
+    return Text(
+      fileListHolder.currentFile.value?.path.split(Platform.pathSeparator).last ?? "Untitled",
+      style: const TextStyle(
+        fontFamily: "FiraCode",
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: Color(0xff808080),
+      ),
+      overflow: TextOverflow.ellipsis,
     );
   }
 
@@ -385,23 +497,19 @@ class _RightSideState extends State<RightSide> {
         showRenameFileDialog(context).then((newName) {
           if (newName != null) {
             _fileHolder!.renameCurrentFile(newName);
-            print(_fileHolder!.currentFile.value);
-            print(_fileHolder!.files);
           }
         });
       },
       icon: SvgPicture.asset(
         'assets/icons/tabler--pencil.svg', // Ensure this path is correct
         height: 16,
-        colorFilter:
-            const ColorFilter.mode(Color(0xff818e8a), BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(Color(0xff808080), BlendMode.srcIn),
       ),
     );
   }
 
   Future<String?> showRenameFileDialog(BuildContext context) async {
     TextEditingController controller = TextEditingController();
-
     return showDialog<String>(
       context: context,
       barrierDismissible: false, // Force the user to tap a button
@@ -418,14 +526,12 @@ class _RightSideState extends State<RightSide> {
           actions: [
             TextButton(
               onPressed: () {
-                // Close the dialog and return null if canceled.
                 Navigator.of(context).pop(null);
               },
               child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                // Close the dialog and return the entered file name.
                 Navigator.of(context).pop(controller.text.trim());
               },
               child: const Text('OK'),
@@ -449,20 +555,15 @@ class _RightSideState extends State<RightSide> {
       icon: SvgPicture.asset(
         'assets/icons/tabler--trash.svg', // Ensure this path is correct
         height: 16,
-        colorFilter:
-            const ColorFilter.mode(Color(0xff818e8a), BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(Color(0xff808080), BlendMode.srcIn),
       ),
     );
   }
 
-  /// Displays a confirmation dialog asking the user if they want to delete the file.
-  /// 
-  /// Returns a [Future<bool>] that resolves to `true` if the user confirms deletion,
-  /// or `false` if the user cancels.
   Future<bool> showDeleteConfirmationDialog(BuildContext context) async {
     return (await showDialog<bool>(
       context: context,
-      barrierDismissible: false, // The user must tap a button.
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Delete File'),
@@ -470,20 +571,20 @@ class _RightSideState extends State<RightSide> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(false); // User cancels.
+                Navigator.of(context).pop(false);
               },
               child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(true); // User confirms deletion.
+                Navigator.of(context).pop(true);
               },
               child: const Text('Delete'),
             ),
           ],
         );
       },
-    )) ?? false; // Return false if the dialog is dismissed.
+    )) ?? false;
   }
 
   Widget buildSaveButton(FileListHolder fileListHolder) {
@@ -494,8 +595,7 @@ class _RightSideState extends State<RightSide> {
       icon: SvgPicture.asset(
         'assets/icons/tabler--device-floppy.svg', // Ensure this path is correct
         height: 16,
-        colorFilter:
-            const ColorFilter.mode(Color(0xff818e8a), BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(Color(0xff808080), BlendMode.srcIn),
       ),
     );
   }
@@ -508,8 +608,7 @@ class _RightSideState extends State<RightSide> {
       icon: SvgPicture.asset(
         'assets/icons/tabler--clock.svg', // Ensure this path is correct
         height: 16,
-        colorFilter:
-            const ColorFilter.mode(Color(0xff818e8a), BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(Color(0xff808080), BlendMode.srcIn),
       ),
     );
   }
