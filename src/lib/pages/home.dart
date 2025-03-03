@@ -16,6 +16,7 @@ import 'package:flutter_highlight/themes/atom-one-dark.dart';
 // Local Imports
 import 'package:karnote/main.dart';
 import 'package:karnote/helpers/file.dart';
+import 'package:karnote/helpers/versions.dart';
 
 // The Left side sidebar of the app.
 class LeftSide extends StatelessWidget {
@@ -107,6 +108,7 @@ class LeftSide extends StatelessWidget {
   }
 
   Row buildFileListRow(File file, FileListHolder fileHolder) {
+    bool isSelected = file.path == fileHolder.currentFile.value?.path;
     return Row(
       children: [
         Expanded( // Wrap with Expanded
@@ -116,7 +118,7 @@ class LeftSide extends StatelessWidget {
               fontFamily: "FiraCode",
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: Color(0xffc1c2e5),
+              color: isSelected? Color(0xffc1c2e5) : Color(0xff808080),
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -132,8 +134,9 @@ class LeftSide extends StatelessWidget {
           icon: SvgPicture.asset(
             'assets\\icons\\tabler--x.svg',
             height: 16,
-            colorFilter: const ColorFilter.mode(
-              Color(0xffc1c2e5), BlendMode.srcIn),
+            colorFilter: ColorFilter.mode(
+              isSelected? Color(0xffc1c2e5) : Color(0xff808080),
+              BlendMode.srcIn),
           ),
         )
       ],
@@ -471,7 +474,8 @@ class _RightSideState extends State<RightSide> {
             ],
           ),
         ),
-        buildSaveButton(fileListHolder),
+        buildVersionHistoryButton(),
+        // buildSaveButton(fileListHolder),
         const SizedBox(width: 8),
         buildDeleteButton(fileListHolder),
       ],
@@ -493,6 +497,7 @@ class _RightSideState extends State<RightSide> {
 
   Widget buildRenameButton() {
     return IconButton(
+      tooltip: "Rename File",
       onPressed: () {
         showRenameFileDialog(context).then((newName) {
           if (newName != null) {
@@ -544,6 +549,7 @@ class _RightSideState extends State<RightSide> {
 
   Widget buildDeleteButton(FileListHolder fileListHolder) {
     return IconButton(
+      tooltip: "Delete File",
       onPressed: () {
         showDeleteConfirmationDialog(context).then((confirmed) {
           if (confirmed) {
@@ -587,29 +593,224 @@ class _RightSideState extends State<RightSide> {
     )) ?? false;
   }
 
-  Widget buildSaveButton(FileListHolder fileListHolder) {
-    return IconButton(
-      onPressed: () {
-        saveFile(fileListHolder.currentFile.value?.path ?? "", _codeController!.text);
-      },
-      icon: SvgPicture.asset(
-        'assets/icons/tabler--device-floppy.svg', // Ensure this path is correct
-        height: 16,
-        colorFilter: const ColorFilter.mode(Color(0xff808080), BlendMode.srcIn),
-      ),
-    );
-  }
-
   Widget buildVersionHistoryButton() {
     return IconButton(
+      tooltip: "Version History",
       onPressed: () {
-        print("Version History called");
+        showVersionControlDialog(context);
       },
       icon: SvgPicture.asset(
         'assets/icons/tabler--clock.svg', // Ensure this path is correct
         height: 16,
         colorFilter: const ColorFilter.mode(Color(0xff808080), BlendMode.srcIn),
       ),
+    );
+  }
+
+  Future<void> showVersionControlDialog(BuildContext context) async {
+    Column structure = await buildVersionControlStructure();
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        
+        return AlertDialog(
+          backgroundColor: const Color(0xff171717),
+          title: const Text(
+            'Version History',
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xff808080),
+            ),
+          ),
+          content: structure,
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<Column> buildVersionControlStructure() async {
+    final versions = await getVersions(_fileHolder!.currentFile.value!.path);
+    List<String> keys = versions.keys.toList();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        buildNewVersionButton(),
+        const SizedBox(height: 10),
+        buildVersionList(keys, versions)
+      ]
+    );
+  }
+
+  SizedBox buildVersionList(List<String> keys, Map<String, dynamic> versions) {
+    return SizedBox(
+      width: 400,
+      height: 300,
+      child: ListView.separated(
+        itemCount: keys.length,
+        itemBuilder: (context, index) {
+          final Map<String, dynamic> version = versions[keys[index]];
+          return ListTile(
+            tileColor: Color(0x114e3fbd),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            hoverColor: Color(0x33ffffff),
+            title: Text(
+              version["title"],
+              style: const TextStyle(
+                fontFamily: "FiraCode",
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xffc1c2e5),
+              ),
+            ),
+            subtitle: Text(
+              isoToHuman(keys[index]),
+              style: const TextStyle(
+                fontFamily: "FiraCode",
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xff808080),
+              ),
+            ),
+            onTap: () {
+              askToChangeVersion(context, version);
+            },
+          );
+        },
+        separatorBuilder: (context, index) => const SizedBox(height: 5),
+      ),
+    );
+  }
+
+  TextButton buildNewVersionButton () {
+    return TextButton(
+      style: TextButton.styleFrom(
+        backgroundColor: Color(0xff4e3fbd),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+      onPressed: () {
+        askForNewVersionDetails();
+      },
+      child: Row(
+        children: [
+          Text(
+            "New Version",
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Color(0xffffffff),
+            ),
+          ),
+          Spacer(),
+          SvgPicture.asset(
+            'assets\\icons\\tabler--device-floppy.svg',
+            height: 16,
+            colorFilter: const ColorFilter.mode(Color(0xffffffff), BlendMode.srcIn),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void askForNewVersionDetails () {
+    TextEditingController titleController = TextEditingController();
+    TextEditingController descriptionController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("New Version"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                maxLines: 1,
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: "Title",
+                ),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: "Description",
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Map<String, dynamic> versionData = {
+                  "title": titleController.text,
+                  "desc": descriptionController.text,
+                  "content": _codeController!.text,
+                };
+                saveVersion(_fileHolder!.currentFile.value!.path, versionData);
+                Navigator.of(context).pop();
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      } 
+    );
+  }
+
+
+  Future<void> askToChangeVersion(BuildContext context, Map<String, dynamic> versionData) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(versionData["title"]),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(versionData["desc"]),
+              const SizedBox(height: 10),
+              Text(versionData["content"]),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Close"),
+            ),
+            TextButton(
+              onPressed: () {
+                _codeController!.text = versionData["content"];
+                Navigator.of(context).pop();
+              },
+              child: const Text("Load"),
+            ),
+          ],
+        );
+      },
     );
   }
 }
