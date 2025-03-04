@@ -144,7 +144,6 @@ class LeftSide extends StatelessWidget {
   }
 }
 
-// The welcome screen on start of the app.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -152,6 +151,63 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     FileListHolder fileListHolder = Provider.of<FileListHolder>(context);
 
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 100),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildGreetingWidget(),
+          const Spacer(),
+          buildWorkActions(fileListHolder),
+        ],
+      )
+    );
+  }
+
+  Widget buildGreetingWidget () {
+    return Row(
+      children: [
+        SvgPicture.asset(
+          "assets/illustrations/abstact.svg",
+          height: 162,
+        ),
+        const SizedBox(width: 10),
+        Column(children: [
+          Text(
+            "Welcome,",
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Color(0xffffffff),
+            ),
+          ),
+          Row(children: [
+            const SizedBox(width: 35),
+            Text(
+              "Boss",
+              style: TextStyle(
+                fontFamily: "FiraCode",
+                fontSize: 48,
+                fontWeight: FontWeight.w900,
+                color: Color(0xff4e3fbd),
+              ),
+            ),
+            SvgPicture.asset(
+              "assets/icons/tabler--pencil.svg",
+              height: 48,
+              colorFilter: ColorFilter.mode(
+                Color(0xff4e3fbd),
+                BlendMode.srcIn,
+              ),
+            )
+          ],)
+        ],)
+      ],
+    );
+  }
+
+  Widget buildWorkActions(fileListHolder) {
     void onNewFilePressed () async {
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
       if (selectedDirectory != null) {
@@ -171,58 +227,42 @@ class WelcomeScreen extends StatelessWidget {
       }
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 140),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 70),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xff818e8a), width: 1),
+    return Row(children:[
+      Text(
+        "Let's get some work done",
+        style: TextStyle(
+          fontSize: 12,
+          fontFamily: "FiraCode",
+          color: Color(0xffffffff)
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Welcome to karNOTE",
-              style: TextStyle(
-                fontFamily: "FiraCode",
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: Color(0xff818e8a),
-              ),
-            ),
-            SizedBox(height: 40),
-            TextButton(
-              onPressed: () {onNewFilePressed();},
-              child: const Text(
-                "> New File",
-                style: TextStyle(
-                  fontFamily: "FiraCode",
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  color: Color(0xff818e8a),
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {onOpenFolderPressed();},
-              child: const Text(
-                "> Open File",
-                style: TextStyle(
-                  fontFamily: "FiraCode",
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  color: Color(0xff818e8a),
-                ),
-              ),
-            ),
-          ],
-        )
       ),
-    );
+      const SizedBox(width: 15,),
+      Row(children: [
+        TextButton(
+          onPressed: () {onNewFilePressed();},
+          child: Text(
+            "New File",
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 12,
+              color: Color(0xff8385cb),
+            ),
+          )
+        ),
+
+        TextButton(
+          onPressed: () {onOpenFolderPressed();},
+          child: Text(
+            "Open File",
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 12,
+              color: Color(0xff8385cb),
+            ),
+          )
+        )
+      ],)
+    ]);
   }
 }
 
@@ -672,7 +712,7 @@ class _RightSideState extends State<RightSide> {
               style: const TextStyle(
                 fontFamily: "FiraCode",
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: Color(0xffc1c2e5),
               ),
             ),

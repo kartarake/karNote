@@ -32,6 +32,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    # icons
     - assets\icons\tabler--arrow-left.svg
     - assets\icons\tabler--arrow-narrow-right.svg
     - assets\icons\tabler--clock.svg
@@ -46,6 +47,9 @@ flutter:
     - assets\icons\tabler--settings.svg
     - assets\icons\tabler--x.svg
     - assets\icons\tabler--trash.svg
+
+  # illustrations
+    - assets/illustrations/abstact.svg
 
   fonts:
     - family: FiraCode
