@@ -1,14 +1,9 @@
 import 'package:karnote/helpers/file.dart';
-import 'dart:io';
 
 String replaceExtension(String filePath, String newExtension) {
   final parts = filePath.split('.');
   parts.removeLast();
   return '${parts.join('.')}$newExtension';
-}
-
-Future<bool> fileExists(String filePath) async {
-  return await File(filePath).exists();
 }
 
 Future<bool> newVersionsFile(String forFilePath) async {

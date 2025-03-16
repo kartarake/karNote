@@ -17,6 +17,7 @@ import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'package:karnote/main.dart';
 import 'package:karnote/helpers/file.dart';
 import 'package:karnote/helpers/versions.dart';
+import 'package:karnote/helpers/recent.dart';
 
 // The Left side sidebar of the app.
 class LeftSide extends StatelessWidget {
@@ -144,8 +145,20 @@ class LeftSide extends StatelessWidget {
   }
 }
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+  @override
+  _WelcomeScreenState createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  late Future<Widget> recentListFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    recentListFuture = buildRecentList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,112 +172,230 @@ class WelcomeScreen extends StatelessWidget {
           buildGreetingWidget(),
           const Spacer(),
           buildWorkActions(fileListHolder),
+          const SizedBox(height: 30),
+          FutureBuilder<Widget>(
+            future: recentListFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator(); // Loading indicator
+              } else if (snapshot.hasError) {
+                return Text(
+                  "Error loading recent files",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: "FiraCode",
+                    color: Color(0xff8385cb),
+                  ),
+                );
+              } else {
+                return snapshot.data ?? Container();
+              }
+            },
+          ),
         ],
-      )
+      ),
     );
   }
 
-  Widget buildGreetingWidget () {
+  Widget buildGreetingWidget() {
     return Row(
       children: [
+        SizedBox(width: 8),
         SvgPicture.asset(
           "assets/illustrations/abstact.svg",
           height: 162,
         ),
         const SizedBox(width: 10),
-        Column(children: [
-          Text(
-            "Welcome,",
-            style: TextStyle(
-              fontFamily: "FiraCode",
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: Color(0xffffffff),
-            ),
-          ),
-          Row(children: [
-            const SizedBox(width: 35),
+        Column(
+          children: [
             Text(
-              "Boss",
+              "Welcome,",
               style: TextStyle(
                 fontFamily: "FiraCode",
-                fontSize: 48,
-                fontWeight: FontWeight.w900,
-                color: Color(0xff4e3fbd),
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Color(0xffffffff),
               ),
             ),
-            SvgPicture.asset(
-              "assets/icons/tabler--pencil.svg",
-              height: 48,
-              colorFilter: ColorFilter.mode(
-                Color(0xff4e3fbd),
-                BlendMode.srcIn,
-              ),
+            Row(
+              children: [
+                const SizedBox(width: 35),
+                Text(
+                  "Boss",
+                  style: TextStyle(
+                    fontFamily: "FiraCode",
+                    fontSize: 48,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xff4e3fbd),
+                  ),
+                ),
+                SvgPicture.asset(
+                  "assets/icons/tabler--pencil.svg",
+                  height: 48,
+                  colorFilter: ColorFilter.mode(
+                    Color(0xff4e3fbd),
+                    BlendMode.srcIn,
+                  ),
+                )
+              ],
             )
-          ],)
-        ],)
+          ],
+        )
       ],
     );
   }
 
-  Widget buildWorkActions(fileListHolder) {
-    void onNewFilePressed () async {
+  Widget buildWorkActions(FileListHolder fileListHolder) {
+    void onNewFilePressed() async {
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
       if (selectedDirectory != null) {
         File newFile = File(path.join(selectedDirectory, "Untitled.txt"));
         saveFile(newFile.path, "");
         fileListHolder.addFile(newFile);
         fileListHolder.setCurrentFile(newFile);
+        await addRecentFile(newFile.path);
+        setState(() {
+          recentListFuture = buildRecentList(); // Refresh recent list
+        });
       }
     }
 
-    void onOpenFolderPressed () async {
+    void onOpenFolderPressed() async {
       FilePickerResult? result = await FilePicker.platform.pickFiles();
       if (result != null) {
         File file = File(result.files.single.path!);
         fileListHolder.addFile(file);
         fileListHolder.setCurrentFile(file);
+        await addRecentFile(file.path);
+        recentListFuture = buildRecentList();
       }
     }
 
-    return Row(children:[
-      Text(
-        "Let's get some work done",
-        style: TextStyle(
-          fontSize: 12,
-          fontFamily: "FiraCode",
-          color: Color(0xffffffff)
+    return Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            "Let's get some work done",
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: "FiraCode",
+              color: Color(0xffffffff),
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            TextButton(
+              onPressed: onNewFilePressed,
+              child: Text(
+                "New File",
+                style: TextStyle(
+                  fontFamily: "FiraCode",
+                  fontSize: 12,
+                  color: Color(0xff8385cb),
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: onOpenFolderPressed,
+              child: Text(
+                "Open File",
+                style: TextStyle(
+                  fontFamily: "FiraCode",
+                  fontSize: 12,
+                  color: Color(0xff8385cb),
+                ),
+              ),
+            )
+          ],
+        )
+      ],
+    );
+  }
+
+  Future<Widget> buildRecentList() async {
+    Map<String, dynamic> fileData = await loadRecentFiles();
+    List<dynamic> filePathList = fileData["data"];
+    List<Widget> fileWidgets = [];
+
+    fileWidgets.add(
+      Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Text(
+          "Recent",
+          style: TextStyle(
+            fontSize: 12,
+            fontFamily: "FiraCode",
+            color: Color(0xffffffff),
+          ),
         ),
       ),
-      const SizedBox(width: 15,),
-      Row(children: [
-        TextButton(
-          onPressed: () {onNewFilePressed();},
-          child: Text(
-            "New File",
-            style: TextStyle(
-              fontFamily: "FiraCode",
-              fontSize: 12,
-              color: Color(0xff8385cb),
-            ),
-          )
-        ),
+    );
 
-        TextButton(
-          onPressed: () {onOpenFolderPressed();},
-          child: Text(
-            "Open File",
+    if (filePathList.isEmpty) {
+      fileWidgets.add(
+        Text(
+          "No recent files",
+          style: TextStyle(
+            fontSize: 12,
+            fontFamily: "FiraCode",
+            color: Color(0xff8385cb),
+          ),
+        ),
+      );
+    } else {
+      for (String path in filePathList) {
+        fileWidgets.add(buildRecentFile(File(path)));
+      }
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: fileWidgets,
+    );
+  }
+
+  Widget buildRecentFile(File file) {
+    return TextButton(
+      style: TextButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        )
+      ),
+      onPressed: () async {
+        FileListHolder fileListHolder = Provider.of<FileListHolder>(context, listen: false);
+        fileListHolder.addFile(file);
+        fileListHolder.setCurrentFile(file);
+        await addRecentFile(file.path);
+        recentListFuture = buildRecentList();
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            "assets/icons/tabler--file.svg",
+            height: 16,
+            colorFilter: ColorFilter.mode(
+              Color(0xff8385cb),
+              BlendMode.srcIn,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            file.path.split(Platform.pathSeparator).last,
             style: TextStyle(
-              fontFamily: "FiraCode",
               fontSize: 12,
+              fontFamily: "FiraCode",
               color: Color(0xff8385cb),
             ),
-          )
-        )
-      ],)
-    ]);
+          ),
+        ],
+      ),
+    );
   }
 }
+
 
 // The code editor screen.
 class RightSide extends StatefulWidget {
@@ -825,15 +956,43 @@ class _RightSideState extends State<RightSide> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(versionData["title"]),
+          title: Text(
+            versionData["title"],
+            overflow: TextOverflow.fade,
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xff808080),
+            ),
+          ),
           content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(versionData["desc"]),
+              Text(
+                versionData["desc"],
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: "FiraCode",
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xff808080),
+                ),
+              ),
               const SizedBox(height: 10),
-              Text(versionData["content"]),
+              Text(
+                versionData["content"],
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: "FiraCode",
+                  fontSize: 12,
+                  color: Color(0xff808080),
+                ),
+              ),
             ],
           ),
+          backgroundColor: Color(0xff171717),
           actions: [
             TextButton(
               onPressed: () {

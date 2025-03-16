@@ -49,7 +49,7 @@ Future<Map<String, dynamic>> readJSON(String path) async {
 
 Future<void> saveJSON(String path, Map<String, dynamic> jsonObject) async {
   final jsonString = jsonEncode(jsonObject);
-  await saveFile(path, jsonString);
+  await safeSaveFile(path, jsonString);
 }
 
 
@@ -63,4 +63,8 @@ Future<void> deleteFile(File file) async {
   } else {
     throw Exception("File does not exist: ${file.path}");
   }
+}
+
+Future<bool> fileExists(String filePath) async {
+  return await File(filePath).exists();
 }
