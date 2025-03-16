@@ -21,6 +21,7 @@ dependencies:
   crypto: ^3.0.6
   archive: ^4.0.2
   path: ^1.9.0
+  url_launcher: ^6.3.1
 
 
 dev_dependencies:
@@ -28,6 +29,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.3
+
 
 flutter:
   uses-material-design: true
@@ -47,6 +49,8 @@ flutter:
     - assets\icons\tabler--settings.svg
     - assets\icons\tabler--x.svg
     - assets\icons\tabler--trash.svg
+    - assets\icons\tabler--file-plus.svg
+    - assets\icons\github-mark.svg
 
   # illustrations
     - assets/illustrations/abstact.svg

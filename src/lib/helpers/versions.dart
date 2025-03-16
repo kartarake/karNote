@@ -29,6 +29,9 @@ String isoToHuman(String isoString) {
 
 Future<Map<String, dynamic>> getVersions(String filePath) async {
   final String versionsFilePath = replaceExtension(filePath, '.versions');
+  if (!await fileExists(versionsFilePath)) {
+    await newVersionsFile(filePath);
+  }
   final Map<String,dynamic> versions = await readJSON(versionsFilePath);
   return versions;
 }

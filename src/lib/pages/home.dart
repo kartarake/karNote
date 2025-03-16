@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
+import 'package:url_launcher/url_launcher.dart';
 
 // Code Editor Dependencies
 import 'package:code_text_field/code_text_field.dart';
@@ -52,13 +53,90 @@ class LeftSide extends StatelessWidget {
       );
     }
 
+    Widget buildSideBarToolbox() {
+      Widget NewFileButton = TextButton(
+        style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(7),
+            side: BorderSide(color: Color(0xff4e3fbd)),
+          ),
+          backgroundColor: Color.fromRGBO(78, 63, 189, 0.2)
+        ),
+
+        onPressed: () async {
+          FileListHolder fileListHolder = Provider.of<FileListHolder>(context, listen: false);
+          String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+          if (selectedDirectory != null) {
+            File newFile = File(path.join(selectedDirectory, "Untitled.txt"));
+            saveFile(newFile.path, "");
+            fileListHolder.addFile(newFile);
+            fileListHolder.setCurrentFile(newFile);
+            await addRecentFile(newFile.path);
+          }
+        },
+        child: Container(
+          width: 120,
+          height: 26,
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                'assets/icons/tabler--file-plus.svg',
+                height: 16,
+                colorFilter: const ColorFilter.mode(Color(0xffc1c2e5), BlendMode.srcIn),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                "New File",
+                style: TextStyle(
+                  fontFamily: "FiraCode",
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xffc1c2e5),
+                ),
+              ),
+            ],
+          ),
+        )
+      );
+
+      return Container(
+        width: 200,
+        height: 55,
+        decoration: BoxDecoration(
+          color: Color.fromRGBO(78, 63, 189, 0.15),
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: 10),
+            NewFileButton,
+            const Spacer(),
+            IconButton(
+              icon: SvgPicture.asset(
+                'assets/icons/github-mark.svg',
+                height: 16,
+                colorFilter: const ColorFilter.mode(Color(0xffc1c2e5), BlendMode.srcIn),
+              ),
+              onPressed: () async {
+                Uri url = Uri.parse('https://github.com/kartarake/karNote');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url);
+                }
+              },
+            ),
+            const SizedBox(width: 5),
+          ]
+        )
+      );
+    }
+
     Widget buildFileList() {
       return SizedBox(
-        height: 500,
+        height: 477,
         child: ValueListenableBuilder<File?>(
           valueListenable: fileHolder.currentFile, 
           builder: (context, currentFile, _) {
-            return ListView.separated(
+            return (fileHolder.files.isNotEmpty)? ListView.separated(
               itemCount: fileHolder.files.length,
               itemBuilder: (context, index) {
                 File file = fileHolder.files[index];
@@ -80,6 +158,28 @@ class LeftSide extends StatelessWidget {
                 );
               },
               separatorBuilder: (context, index) => SizedBox(height: 10),
+            ) : Column(
+              children: [
+                const SizedBox(height: 25),
+                Container(
+                  width: 200,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color.fromRGBO(26, 26, 26, 0.2),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Center(
+                    child: Text(
+                      "No File is opened",
+                      style: TextStyle(
+                        fontFamily: "FiraCode",
+                        fontSize: 12,
+                        color: Color(0xffc1c2e5),
+                      ),
+                    ),
+                  )
+                ),
+              ],
             );
           },
         ),
@@ -101,7 +201,8 @@ class LeftSide extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             buildFileListHeader(),
-            buildFileList()
+            buildFileList(),
+            buildSideBarToolbox()
           ],
         ),
       ),
@@ -254,9 +355,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         fileListHolder.addFile(newFile);
         fileListHolder.setCurrentFile(newFile);
         await addRecentFile(newFile.path);
-        setState(() {
-          recentListFuture = buildRecentList(); // Refresh recent list
-        });
+        recentListFuture = buildRecentList();
       }
     }
 
