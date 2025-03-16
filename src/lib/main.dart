@@ -140,7 +140,6 @@ class LeftSideIcons extends StatelessWidget {
       children: [
         _iconButton('assets/icons/tabler--menu-2.svg', onMenuPressed, "Side Bar"),
         _iconButton('assets/icons/tabler--folder-open.svg', onFolderOpenPressed, "Open File"),
-        _iconButton('assets/icons/tabler--search.svg', () {}, "Search"),
       ],
     );
   }
@@ -199,6 +198,14 @@ class FileListHolder extends ChangeNotifier {
 
   List<File> get files => _files;
   File get current => currentFile.value!;
+
+  bool _isSaved = true;
+  bool get isSaved => _isSaved;
+
+  void switchSaveStatus() {
+    _isSaved = !_isSaved;
+    notifyListeners();
+  }
 
   void setCurrentFile(File file) {
     currentFile.value = file;

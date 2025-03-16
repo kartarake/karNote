@@ -441,10 +441,14 @@ class _RightSideState extends State<RightSide> {
   /// Saves the current text in our cache, keyed by the file path.
   void _onCodeChanged() {
     _autoSaveTimer?.cancel();
+    if (_fileHolder!.isSaved) {
+      _fileHolder!.switchSaveStatus();
+    }
     _autoSaveTimer = Timer(autoSaveDelay, () {
       final filePath = _fileHolder!.currentFile.value?.path ?? "";
       if (filePath.isNotEmpty) {
         safeSaveFile(filePath, _codeController!.text);
+        _fileHolder!.switchSaveStatus();
       }
     });
   }
@@ -580,6 +584,8 @@ class _RightSideState extends State<RightSide> {
                   buildFileBar(fileListHolder),
                   const SizedBox(height: 10),
                   buildCodeEditor(fileListHolder),
+                  const SizedBox(height: 10),
+                  saveStatus(fileListHolder)
                 ],
               ),
             ),
@@ -587,6 +593,53 @@ class _RightSideState extends State<RightSide> {
         ),
       ],
     );
+  }
+
+  Widget saveStatus(FileListHolder fileListHolder) {
+    if (fileListHolder.isSaved) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Icon(
+            Icons.check,
+            size: 12,
+            color: const Color(0xff808080),
+          ),
+          SizedBox(width: 5),
+          Text(
+            "Saved",
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 12,
+              color: const Color(0xff808080),
+            ),
+          ),
+        ],
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          SizedBox(
+            width: 10,
+            height: 10,
+            child: CircularProgressIndicator(
+              strokeWidth: 1,
+              color: const Color(0xff808080),
+            ),
+          ),
+          SizedBox(width: 5),
+          Text(
+            "Saving",
+            style: TextStyle(
+              fontFamily: "FiraCode",
+              fontSize: 12,
+              color: const Color(0xff808080),
+            ),
+          ),
+        ],
+      );
+    }
   }
 
   /// The code editor widget.
@@ -599,7 +652,7 @@ class _RightSideState extends State<RightSide> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 20),
         child: SizedBox(
-          height: 488, // Fixed max height for the code editor
+          height: 461, // Fixed max height for the code editor
           child: RawScrollbar(
             interactive: true,
             thumbColor: const Color(0xff767e7d),
