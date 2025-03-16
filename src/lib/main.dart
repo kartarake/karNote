@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'karNOTE',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xff1b1f22),
+        scaffoldBackgroundColor: const Color(0xff1a1a1a),
       ),
       home: const AppLayout(),
     );
@@ -57,6 +57,7 @@ class _AppLayoutState extends State<AppLayout> {
 
   @override
   Widget build(BuildContext context) {
+    FileListHolder fileList = Provider.of<FileListHolder>(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: CustomTitleBar(onMenuPressed: () {
@@ -76,7 +77,9 @@ class _AppLayoutState extends State<AppLayout> {
                 );
               },
             ),
-            const Expanded(child: RightSide()),
+            Expanded(
+              child: fileList._files.isEmpty? WelcomeScreen() : RightSide()
+            ),
           ],
         ),
       ),
@@ -129,7 +132,7 @@ class LeftSideIcons extends StatelessWidget {
       if (result != null) {
         File file = File(result.files.single.path!);
         fileHolder.addFile(file);
-        print(fileHolder.files);
+        fileHolder.setCurrentFile(file);
       }
     }
 
@@ -137,7 +140,6 @@ class LeftSideIcons extends StatelessWidget {
       children: [
         _iconButton('assets/icons/tabler--menu-2.svg', onMenuPressed, "Side Bar"),
         _iconButton('assets/icons/tabler--folder-open.svg', onFolderOpenPressed, "Open File"),
-        _iconButton('assets/icons/tabler--search.svg', () {}, "Search"),
       ],
     );
   }
@@ -149,7 +151,7 @@ class LeftSideIcons extends StatelessWidget {
       icon: SvgPicture.asset(
         assetPath,
         height: 24,
-        colorFilter: const ColorFilter.mode(Color(0xff818e8a), BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(Color(0xffc1c2e5), BlendMode.srcIn),
       ),
       onPressed: onTap,
       tooltip: toolTip,
@@ -175,8 +177,8 @@ class WindowButtons extends StatelessWidget {
 
 /// **Button Colors**
 final buttonColors = WindowButtonColors(
-  iconNormal: const Color(0xFF767e7d),
-  mouseOver: const Color(0xFF767e7d),
+  iconNormal: const Color(0xFFc1c2e5),
+  mouseOver: const Color(0xFFc1c2e5),
   mouseDown: const Color(0xFFffffff),
   iconMouseOver: const Color(0xFF1b1f22),
   iconMouseDown: const Color(0xFFFFFFFF),
@@ -185,7 +187,7 @@ final buttonColors = WindowButtonColors(
 final closeButtonColors = WindowButtonColors(
   mouseOver: const Color(0xFFD32F2F),
   mouseDown: const Color(0xFFB71C1C),
-  iconNormal: const Color(0xFF767e7d),
+  iconNormal: const Color(0xFFc1c2e5),
   iconMouseOver: Colors.white,
 );
 
@@ -196,6 +198,14 @@ class FileListHolder extends ChangeNotifier {
 
   List<File> get files => _files;
   File get current => currentFile.value!;
+
+  bool _isSaved = true;
+  bool get isSaved => _isSaved;
+
+  void switchSaveStatus() {
+    _isSaved = !_isSaved;
+    notifyListeners();
+  }
 
   void setCurrentFile(File file) {
     currentFile.value = file;
@@ -209,6 +219,22 @@ class FileListHolder extends ChangeNotifier {
 
   void removeFile(File file) {
     _files.remove(file);
+    notifyListeners();
+  }
+
+  void renameCurrentFile(String newName) async {
+    final current = currentFile.value!;
+    final newPath = current.path.replaceFirst(current.uri.pathSegments.last, newName);
+    final newFile = File(newPath);
+
+    // Update the _files list with the new file path
+    final index = _files.indexOf(current);
+    if (index != -1) {
+      _files[index] = newFile;
+    }
+
+    await current.rename(newPath);
+    currentFile.value = newFile;
     notifyListeners();
   }
 }
