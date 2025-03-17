@@ -1,23 +1,19 @@
 # karNOTE 📓
+NOTE: This application is in alpha stage of development. Use it with your own risk.   
+An open-source notepad which aims for modern UI & convenience. This project is built with flutter. This project welcomes contributions in the form of descriptive pull request of features / bug fixes relevant to this app.
 
-A simple notepad app with mordern UI design. It is opensource and free. It aims to bring efficiency over editing text. (WIP)
 
+## ✨ What is in it?
 
-## ✨ Features
-
-- Necessary File Handling while editing text.
-- Version Control (Coming soon)
-- Encryption (Coming soon)
+- **Auto Save** The app automatically saves the content of the file 2 secs after the user stops typing.
+- **Version Control** Allows the user to manage multiple version of the file.
+- **Syntax Highlighting** This app contains syntax highlighting for many of the common languages.
 
 
 ## ⬇️ Installation
 
-Install the application from the latest release in GitHub page. You would be able to see the executable binary file (.exe) in the list of attached files.
+To install this application in windows simply download the zip file from the GitHub releases's attached files and extract it. As far as all the files in the zip file are in a same folder the application should work.
     
 ## 🖼️ Screenshots
-
-Coming soon!! 😅
-
-
-## ♾️ Open Source
-This application is open source and accepts contributions.
+![image](https://github.com/user-attachments/assets/403bc91f-9a0b-4bbe-9c74-227af313ce87)
+![image](https://github.com/user-attachments/assets/fb044968-f4be-43d6-a6b6-9892f7e8da61)
