@@ -4,7 +4,7 @@ String recentFilePath = "recent.json";
 
 Future<Map<String,dynamic>> loadRecentFiles() async {
   if (!await fileExists(recentFilePath)) {
-    saveJSON(recentFilePath, {"context":"data file for karNOTE to store few recent files","data":[]});
+    await saveJSON(recentFilePath, {"context":"data file for karNOTE to store few recent files","data":[]});
   }
   Map<String,dynamic> dataOnFile = await readJSON(recentFilePath);
   return dataOnFile;

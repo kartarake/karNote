@@ -434,12 +434,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     if (filePathList.isEmpty) {
       fileWidgets.add(
-        Text(
-          "No recent files",
-          style: TextStyle(
-            fontSize: 12,
-            fontFamily: "FiraCode",
-            color: Color(0xff8385cb),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            "No recent files",
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: "FiraCode",
+              color: Color(0xff8385cb),
+            ),
           ),
         ),
       );
