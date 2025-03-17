@@ -18,7 +18,7 @@
 
 ## ⬇️ Installation  
 
-1. Download the latest release ZIP file from the [GitHub Releases](https://github.com/your-repo-name/releases).  
+1. Download the latest release ZIP file from the [GitHub Releases](https://github.com/kartarake/karNote/releases).  
 2. Extract the ZIP file to a single folder.  
 3. Run the application—it's that simple!  
 
